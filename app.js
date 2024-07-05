@@ -7,6 +7,7 @@ const { Sequelize } = require('sequelize');
 const sequelize = require('./models').sequelize;
 const config = require('./config/config.json')
 const { User, Course } = require('./models');
+const bcrypt = require('bcryptjs');
 
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
@@ -54,8 +55,17 @@ app.get('/api/users', async (req, res) => {
 
 // Creates a new user
 app.post('/api/users', async (req, res) => {
-  try{
-    const newUser = await User.create(req.body);
+  try {
+    // Hashes the password
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    const newUser = await User.create({
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      emailAddress: req.body.emailAddress,
+      password: hashedPassword,
+    });
+
     res.status(201).location('/').end();
   } catch (error) {
     if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
