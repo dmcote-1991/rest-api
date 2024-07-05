@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   // One-to-one association
-  Movie.associate = (models) => {
+  Course.associate = (models) => {
     Course.belongsTo(models.User, {
       as: 'user',
       foreignKey: 'userId',

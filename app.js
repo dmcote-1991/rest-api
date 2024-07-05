@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const { Sequelize } = require('sequelize');
 const sequelize = require('./models').sequelize;
 const config = require('./config/config.json')
+const { User } = require('./models');
 
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
@@ -16,11 +17,44 @@ const app = express();
 // setup morgan which gives us http request logging
 app.use(morgan('dev'));
 
+// setup JSON parsing for request bodies
+app.use(express.json());
+
 // setup a friendly greeting for the root route
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to the REST API project!',
   });
+});
+
+// returns all properties and values for the currently authenticated User
+app.get('/api/users', async (req, res) => {
+  try {
+    const authenticatedUserId = 1;
+    const user = await User.findByPk(authenticatedUserId, {
+      attributes: { exclude: ['password'] }
+    });
+
+    if (user) {
+      res.status(200).json(user);
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// creates a new user
+app.post('/api/users', async (req, res) => {
+  try{
+    const newUser = await User.create(req.body);
+    res.status(201).location('/').end();
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(400).json({ message: 'Error creating user'});
+  }
 });
 
 // send 404 if no other route matched
