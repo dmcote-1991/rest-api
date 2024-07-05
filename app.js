@@ -58,8 +58,13 @@ app.post('/api/users', async (req, res) => {
     const newUser = await User.create(req.body);
     res.status(201).location('/').end();
   } catch (error) {
+    if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+      const errors = error.errors.map(err => err.message);
+      res.status(400).json({ errors });
+    } else {
     console.error('Error creating user:', error);
     res.status(400).json({ message: 'Error creating user'});
+    }
   }
 });
 
@@ -113,8 +118,13 @@ app.post('api/courses', async (req, res) => {
     const newCourse = await Course.create(req.body);
     res.status(201).location(`/api/courses/${newCourse.id}`).end();
   } catch (error) {
-    console.error('Error creating course', error);
-    res.status(400).json({ message: 'Error creating course' });
+    if (error.name === 'SequelizeValidationError') {
+      const errors = error.errors.map(err => err.message);
+      res.status(400).json({ errors });
+    } else {
+      console.error('Error creating course', error);
+      res.status(400).json({ message: 'Error creating course' });
+    }
   }
 });
 
@@ -129,8 +139,13 @@ app.put('/api/courses/:id', async (req, res) => {
       res.status(404).json({ message: 'Course not found' });
     }
   } catch (error) {
-    console.error('Error updating course:', error);
-    res.status(400).json({ message: 'Error updating course' });
+    if (error.name === 'SequelizeValidationError') {
+      const errors = error.errors.map(err => err.message);
+      res.status(400).json({ errors });
+    } else {
+      console.error('Error updating course:', error);
+      res.status(400).json({ message: 'Error updating course' });
+    }
   }
 });
 
