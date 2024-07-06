@@ -8,6 +8,7 @@ const sequelize = require('./models').sequelize;
 const config = require('./config/config.json')
 const { User, Course } = require('./models');
 const bcrypt = require('bcryptjs');
+const auth = require('basic-auth');
 
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
@@ -20,6 +21,37 @@ app.use(morgan('dev'));
 
 // setup JSON parsing for request bodies
 app.use(express.json());
+
+// Middleware to authenticate the user
+const authenticateUser = async (req, res, next) => {
+  let message;
+  // Parses the user's credentials from the Authorization header
+  const credentials = auth(req);
+
+  if (credentials) {
+    const user = await User.findOne({ where: { emailAddress: credentials.name } });
+
+    if (user) {
+      const authenticated = bcrypt.compareSync(credentials.pass, user.password);
+
+      if (authenticated) {
+        console.log(`Authentication successful for username: ${user.emailAddress}`);
+        req.currentUser = user;
+        return next();
+      } else {
+        message = `Authentication failure for username: ${user.emailAddress}`;
+      }
+    } else {
+      message = `User not found for username: ${credentials.name}`;
+    }
+  } else {
+    message = 'Auth header not found';
+  }
+
+  console.warn(message);
+
+  res.status(401).json({ message: 'Access Denied' });
+};
 
 /*
   * Home Route
@@ -35,15 +67,15 @@ app.get('/', (req, res) => {
   * Users Routes
 */
 // Returns all properties and values for the currently authenticated User
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', authenticateUser, async (req, res) => {
   try {
-    const authenticatedUserId = 1;
-    const user = await User.findByPk(authenticatedUserId, {
+    const user = req.currentUser;
+    const authenticatedUser = await User.findByPk(user.id, {
       attributes: { exclude: ['password'] }
     });
 
-    if (user) {
-      res.status(200).json(user);
+    if (authenticatedUser) {
+      res.status(200).json(authenticatedUser);
     } else {
       res.status(404).json({ message: 'User not found' });
     }
@@ -123,9 +155,10 @@ app.get('/api/courses/:id', async (req, res) => {
 });
 
 // Creates a new course
-app.post('api/courses', async (req, res) => {
+app.post('api/courses', authenticateUser, async (req, res) => {
   try {
-    const newCourse = await Course.create(req.body);
+    const user = req.currentUser;
+    const newCourse = await Course.create({ ...req.body, userId: user.id });
     res.status(201).location(`/api/courses/${newCourse.id}`).end();
   } catch (error) {
     if (error.name === 'SequelizeValidationError') {
@@ -139,12 +172,18 @@ app.post('api/courses', async (req, res) => {
 });
 
 // Updates the corresponding course
-app.put('/api/courses/:id', async (req, res) => {
+app.put('/api/courses/:id', authenticateUser, async (req, res) => {
   try {
+    const user = req.currentUser;
     const course = await Course.findByPk(req.params.id);
+
     if (course) {
-      await course.update(req.body);
-      res.status(204).end();
+      if (course.userId === user.id) {
+        await course.update(req.body);
+        res.status(204).end();
+      } else {
+      res.status(403).json({ message: 'Forbidden: You can only update your own courses' });
+      }
     } else {
       res.status(404).json({ message: 'Course not found' });
     }
@@ -160,12 +199,18 @@ app.put('/api/courses/:id', async (req, res) => {
 });
 
 // Deletes the corresponding course
-app.delete('/api/courses/:id', async (req, res) => {
+app.delete('/api/courses/:id', authenticateUser, async (req, res) => {
   try {
+    const user = req.currentUser;
     const course = await Course.findByPk(req.params.id);
+
     if (course) {
-      await course.destroy();
-      res.status(204).end();
+      if (course.userId === user.id) {
+        await course.destroy();
+        res.status(204).end();
+       } else {
+        res.status(403).json({ message: 'Forbidden: You can only delete your own courses' });
+      }
     } else {
       res.status(404).json({ message: 'Course not found' });
     }
