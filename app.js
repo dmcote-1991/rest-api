@@ -1,6 +1,6 @@
 'use strict';
 
-// load modules
+// Imports modules
 const express = require('express');
 const morgan = require('morgan');
 const { Sequelize } = require('sequelize');
@@ -10,16 +10,16 @@ const { User, Course } = require('./models');
 const bcrypt = require('bcryptjs');
 const auth = require('basic-auth');
 
-// variable to enable global error logging
+// Enables global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
 
-// create the Express app
+// Creates the Express app
 const app = express();
 
-// setup morgan which gives us http request logging
+// Morgan for http request logging
 app.use(morgan('dev'));
 
-// setup JSON parsing for request bodies
+// JSON parsing for request bodies
 app.use(express.json());
 
 // Middleware to authenticate the user
@@ -56,7 +56,6 @@ const authenticateUser = async (req, res, next) => {
 /*
   * Home Route
 */
-// setup a friendly greeting for the root route
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to the REST API project!',
@@ -71,7 +70,7 @@ app.get('/api/users', authenticateUser, async (req, res) => {
   try {
     const user = req.currentUser;
     const authenticatedUser = await User.findByPk(user.id, {
-      attributes: { exclude: ['password'] }
+      attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
     });
 
     if (authenticatedUser) {
@@ -220,14 +219,14 @@ app.delete('/api/courses/:id', authenticateUser, async (req, res) => {
   }
 });
 
-// send 404 if no other route matched
+// Sends a 404 error if no other route matches
 app.use((req, res) => {
   res.status(404).json({
     message: 'Route Not Found',
   });
 });
 
-// setup a global error handler
+// Global error handler
 app.use((err, req, res, next) => {
   if (enableGlobalErrorLogging) {
     console.error(`Global error handler: ${JSON.stringify(err.stack)}`);
@@ -239,7 +238,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Test the database connection
+// Tests the database connection
 sequelize.authenticate()
   .then(() => {
     console.log('Connection to the database has been established successfully.');
@@ -248,10 +247,10 @@ sequelize.authenticate()
     console.error('Unable to connect to the database:', err);
   });
 
-// Set our port
+// Port setup
 app.set('port', process.env.PORT || 5000);
 
-// Start listening on our port
+// Starts listening on the port
 const server = app.listen(app.get('port'), () => {
   console.log(`Express server is listening on port ${server.address().port}`);
 });
