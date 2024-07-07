@@ -4,8 +4,9 @@ const { Model, DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
   class Course extends Model {
-    // One-to-one association
+    // Defines associations
     static associate(models) {
+      // Defines a one-to-one association with User model
       Course.belongsTo(models.User, {
         as: 'user',
         foreignKey: 'userId',
@@ -13,6 +14,7 @@ module.exports = (sequelize) => {
     }
   }
   Course.init({
+    // Defines the fields for the Course model
     title: {
       type: DataTypes.STRING,
       allowNull: false,

@@ -46,4 +46,5 @@ Object.keys(db).forEach(modelName => {
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
+// Exports the 'db' object containing Sequelize models and instance
 module.exports = db;
