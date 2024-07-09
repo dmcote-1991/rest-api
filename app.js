@@ -154,7 +154,7 @@ app.get('/api/courses/:id', async (req, res) => {
 });
 
 // Creates a new course
-app.post('api/courses', authenticateUser, async (req, res) => {
+app.post('/api/courses', authenticateUser, async (req, res) => {
   try {
     const user = req.currentUser;
     const newCourse = await Course.create({ ...req.body, userId: user.id });
